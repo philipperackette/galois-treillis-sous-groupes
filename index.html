@@ -1,0 +1,218 @@
+<!doctype html>
+<html lang="fr"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Treillis de sous-groupes</title>
+<style>
+:root{--bg:#0e1a44;--panel:#fbfaf4;--ink:#171717;--teal:#0f5b55;--garnet:#8a1d2c;--blue:#1d4f91;--gold:#c79b2b;--line:#d8d2c4}
+*{box-sizing:border-box}body{margin:0;font-family:system-ui,-apple-system,Segoe UI,Roboto,Arial,sans-serif;background:#f3f1ea;color:var(--ink)}
+header{background:var(--bg);color:white;padding:18px 24px;border-bottom:5px solid var(--gold)}
+header h1{margin:0;font-size:1.55rem;font-weight:650}header p{margin:.35rem 0 0;opacity:.9}
+main{padding:20px;max-width:1100px;margin:0 auto}
+.panel{background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:16px;box-shadow:0 2px 10px #0001;margin-bottom:16px}
+.panel h2{margin:.1rem 0 .8rem;font-size:1.1rem;color:var(--teal)}
+label{font-weight:600;font-size:.92rem}
+select,button{font:inherit;border:1px solid #bbb;border-radius:8px;padding:7px 10px;background:white;cursor:pointer}
+button{background:var(--teal);color:white;border-color:var(--teal)}
+.note{font-size:.92rem;color:#444;line-height:1.5}
+.small{font-size:.85rem;color:#555}
+.info{border-left:4px solid var(--blue);padding:8px 10px;background:#f5f9ff;margin:8px 0;border-radius:0 6px 6px 0}
+.success{border-left:4px solid var(--teal);padding:8px 10px;background:#f5fffb;margin:8px 0;border-radius:0 6px 6px 0}
+.warn{border-left:4px solid var(--garnet);padding:8px 10px;background:#fff7f7;margin:8px 0;border-radius:0 6px 6px 0}
+.layout{display:grid;grid-template-columns:2fr 1fr;gap:16px}
+@media(max-width:700px){.layout{grid-template-columns:1fr}}
+svg#lattice{width:100%;height:420px;display:block;background:#fefcf6;border-radius:8px;border:1px solid var(--line)}
+.node{cursor:pointer}
+.node rect{fill:white;stroke:var(--teal);stroke-width:1.5;rx:6;transition:all .2s}
+.node.normal rect{stroke:var(--teal);stroke-width:3;fill:#f0fff8}
+.node.selected rect{fill:#fff3cc;stroke:var(--gold);stroke-width:3}
+.node text{font-size:13px;font-weight:600;fill:var(--ink);pointer-events:none}
+.node:hover rect{fill:#e8f8f2}
+.edge{stroke:#aaa;stroke-width:1.5;fill:none}
+.edge.normal-edge{stroke:var(--teal);stroke-width:2.5;stroke-dasharray:5,3}
+.controls{display:flex;gap:12px;flex-wrap:wrap;align-items:end;margin-bottom:12px}
+.control{display:flex;flex-direction:column;gap:4px}
+.badge{display:inline-block;border-radius:6px;background:#e8e3d7;padding:3px 10px;margin:3px;font-size:.88rem}
+.badge.dist{background:#d8f1e1;color:var(--teal)}
+.badge.notdist{background:#f4d5d5;color:var(--garnet)}
+</style>
+</head><body>
+<header>
+  <h1>Treillis de sous-groupes</h1>
+  <p>Explorer les sous-groupes de S₃ et D₄ — sous-groupes distingués, quotients, inclusions.</p>
+</header>
+<main>
+<section class="panel">
+  <div class="controls">
+    <div class="control">
+      <label for="grp">Groupe</label>
+      <select id="grp">
+        <option value="S3">S₃ (ordre 6)</option>
+        <option value="D4" selected>D₄ (ordre 8)</option>
+        <option value="V4">V₄ = ℤ/2ℤ × ℤ/2ℤ (ordre 4)</option>
+        <option value="Z8">ℤ/8ℤ (ordre 8)</option>
+        <option value="Q8">ℚ₈ quaternions (ordre 8)</option>
+      </select>
+    </div>
+  </div>
+  <p class="note small">Cliquer sur un nœud pour afficher ses propriétés. Les sous-groupes distingués sont encadrés en vert (double trait).</p>
+</section>
+
+<div class="layout">
+  <section class="panel">
+    <h2>Treillis</h2>
+    <svg id="lattice" viewBox="0 0 540 420"></svg>
+  </section>
+  <section class="panel">
+    <h2>Sous-groupe sélectionné</h2>
+    <div id="detail"><p class="small">Cliquer sur un nœud.</p></div>
+  </section>
+</div>
+<div class="linkbar">Applet statique HTML/JS pur — compagnon du §1.D (treillis de sous-groupes).</div>
+</main>
+<script>
+// Données : pour chaque groupe, sous-groupes avec position, label, ordre, distingué, générateurs, quotient éventuel
+const DATA = {
+  S3:{
+    name:'S₃',order:6,
+    nodes:[
+      {id:'G', label:'S₃',        order:6, normal:true,  gens:'e,(12),(13),(23),(123),(132)', quotient:'—',     pos:[270,40]},
+      {id:'A3',label:'A₃',        order:3, normal:true,  gens:'e,(123),(132)',                quotient:'S₃/A₃ ≃ ℤ/2ℤ', pos:[270,160]},
+      {id:'t12',label:'⟨(1 2)⟩',  order:2, normal:false, gens:'e,(12)',                        quotient:'—',     pos:[110,160]},
+      {id:'t13',label:'⟨(1 3)⟩',  order:2, normal:false, gens:'e,(13)',                        quotient:'—',     pos:[270,250]},
+      {id:'t23',label:'⟨(2 3)⟩',  order:2, normal:false, gens:'e,(23)',                        quotient:'—',     pos:[430,160]},
+      {id:'e',  label:'{e}',       order:1, normal:true,  gens:'e',                            quotient:'—',     pos:[270,370]},
+    ],
+    edges:[['G','A3'],['G','t12'],['G','t13'],['G','t23'],['A3','e'],['t12','e'],['t13','e'],['t23','e']],
+    normalEdges:[['G','A3'],['A3','e']]
+  },
+  D4:{
+    name:'D₄',order:8,
+    nodes:[
+      {id:'G',   label:'D₄',            order:8, normal:true,  gens:'e,r,r²,r³,s,sr,sr²,sr³',  quotient:'—',          pos:[270,30]},
+      {id:'rot', label:'⟨r⟩',           order:4, normal:true,  gens:'e,r,r²,r³',                quotient:'D₄/⟨r⟩ ≃ ℤ/2ℤ', pos:[270,120]},
+      {id:'r2s', label:'⟨r²,s⟩',        order:4, normal:true,  gens:'e,r²,s,sr²',              quotient:'D₄/⟨r²,s⟩ ≃ ℤ/2ℤ', pos:[110,120]},
+      {id:'r2sr',label:'⟨r²,sr⟩',       order:4, normal:true,  gens:'e,r²,sr,sr³',             quotient:'D₄/⟨r²,sr⟩ ≃ ℤ/2ℤ', pos:[430,120]},
+      {id:'r2',  label:'⟨r²⟩',          order:2, normal:true,  gens:'e,r²',                     quotient:'D₄/⟨r²⟩ ≃ V₄', pos:[270,230]},
+      {id:'s',   label:'⟨s⟩',           order:2, normal:false, gens:'e,s',                      quotient:'—',          pos:[80,230]},
+      {id:'sr2', label:'⟨sr²⟩',         order:2, normal:false, gens:'e,sr²',                   quotient:'—',          pos:[180,310]},
+      {id:'sr',  label:'⟨sr⟩',          order:2, normal:false, gens:'e,sr',                    quotient:'—',          pos:[360,310]},
+      {id:'sr3', label:'⟨sr³⟩',         order:2, normal:false, gens:'e,sr³',                  quotient:'—',          pos:[460,230]},
+      {id:'e',   label:'{e}',            order:1, normal:true,  gens:'e',                       quotient:'—',          pos:[270,390]},
+    ],
+    edges:[
+      ['G','rot'],['G','r2s'],['G','r2sr'],
+      ['rot','r2'],['r2s','r2'],['r2s','s'],['r2s','sr2'],['r2sr','r2'],['r2sr','sr'],['r2sr','sr3'],
+      ['r2','e'],['s','e'],['sr2','e'],['sr','e'],['sr3','e']
+    ],
+    normalEdges:[['G','rot'],['G','r2s'],['G','r2sr'],['rot','r2'],['r2s','r2'],['r2sr','r2'],['r2','e']]
+  },
+  V4:{
+    name:'V₄',order:4,
+    nodes:[
+      {id:'G',  label:'V₄',    order:4, normal:true, gens:'e,a,b,ab', quotient:'—', pos:[270,40]},
+      {id:'a',  label:'⟨a⟩',   order:2, normal:true, gens:'e,a',      quotient:'V₄/⟨a⟩ ≃ ℤ/2ℤ', pos:[110,200]},
+      {id:'b',  label:'⟨b⟩',   order:2, normal:true, gens:'e,b',      quotient:'V₄/⟨b⟩ ≃ ℤ/2ℤ', pos:[270,200]},
+      {id:'ab', label:'⟨ab⟩',  order:2, normal:true, gens:'e,ab',     quotient:'V₄/⟨ab⟩ ≃ ℤ/2ℤ',pos:[430,200]},
+      {id:'e',  label:'{e}',   order:1, normal:true, gens:'e',        quotient:'—', pos:[270,370]},
+    ],
+    edges:[['G','a'],['G','b'],['G','ab'],['a','e'],['b','e'],['ab','e']],
+    normalEdges:[['G','a'],['G','b'],['G','ab'],['a','e'],['b','e'],['ab','e']]
+  },
+  Z8:{
+    name:'ℤ/8ℤ',order:8,
+    nodes:[
+      {id:'Z8',  label:'ℤ/8ℤ',    order:8, normal:true, gens:'1',  quotient:'—',        pos:[270,40]},
+      {id:'Z4',  label:'⟨2⟩≃ℤ/4ℤ',order:4, normal:true, gens:'2',  quotient:'ℤ/8ℤ/⟨2⟩≃ℤ/2ℤ', pos:[270,170]},
+      {id:'Z2',  label:'⟨4⟩≃ℤ/2ℤ',order:2, normal:true, gens:'4',  quotient:'ℤ/8ℤ/⟨4⟩≃ℤ/4ℤ', pos:[270,300]},
+      {id:'e',   label:'{0}',      order:1, normal:true, gens:'0',  quotient:'—',        pos:[270,390]},
+    ],
+    edges:[['Z8','Z4'],['Z4','Z2'],['Z2','e']],
+    normalEdges:[['Z8','Z4'],['Z4','Z2'],['Z2','e']]
+  },
+  Q8:{
+    name:'ℚ₈',order:8,
+    nodes:[
+      {id:'G',  label:'ℚ₈',     order:8, normal:true, gens:'i,j',      quotient:'—',           pos:[270,30]},
+      {id:'Ci', label:'⟨i⟩',    order:4, normal:true, gens:'i',         quotient:'ℚ₈/⟨i⟩≃ℤ/2ℤ',pos:[110,150]},
+      {id:'Cj', label:'⟨j⟩',    order:4, normal:true, gens:'j',         quotient:'ℚ₈/⟨j⟩≃ℤ/2ℤ',pos:[270,150]},
+      {id:'Ck', label:'⟨k⟩',    order:4, normal:true, gens:'k',         quotient:'ℚ₈/⟨k⟩≃ℤ/2ℤ',pos:[430,150]},
+      {id:'m1', label:'⟨−1⟩',   order:2, normal:true, gens:'-1',        quotient:'ℚ₈/⟨−1⟩≃V₄',  pos:[270,290]},
+      {id:'e',  label:'{1}',    order:1, normal:true, gens:'1',         quotient:'—',           pos:[270,390]},
+    ],
+    edges:[['G','Ci'],['G','Cj'],['G','Ck'],['Ci','m1'],['Cj','m1'],['Ck','m1'],['m1','e']],
+    normalEdges:[['G','Ci'],['G','Cj'],['G','Ck'],['Ci','m1'],['Cj','m1'],['Ck','m1'],['m1','e']]
+  }
+};
+
+let selected=null;
+
+function render(){
+  const key=document.getElementById('grp').value;
+  const d=DATA[key];
+  const svg=document.getElementById('lattice');
+  const normalEdgeSet=new Set(d.normalEdges.map(([a,b])=>a+'|'+b));
+  const posMap=Object.fromEntries(d.nodes.map(n=>[n.id,n.pos]));
+
+  let out='';
+  // Arêtes
+  d.edges.forEach(([a,b])=>{
+    const pa=posMap[a],pb=posMap[b];
+    const isNorm=normalEdgeSet.has(a+'|'+b)||normalEdgeSet.has(b+'|'+a);
+    out+=`<line class="edge${isNorm?' normal-edge':''}" x1="${pa[0]}" y1="${pa[1]}" x2="${pb[0]}" y2="${pb[1]}"/>`;
+  });
+  // Nœuds
+  d.nodes.forEach(n=>{
+    const[cx,cy]=n.pos;
+    const w=Math.max(70,n.label.length*9+16);
+    const isSel=selected===n.id;
+    let cls='node'+(n.normal?' normal':'')+(isSel?' selected':'');
+    const sw=n.normal?3:1.5;
+    const fill=isSel?'#fff3cc':n.normal?'#f0fff8':'white';
+    const stroke=isSel?'#c79b2b':n.normal?'#0f5b55':'#888';
+    out+=`<g class="${cls}" data-id="${n.id}">`;
+    out+=`<rect x="${cx-w/2}" y="${cy-16}" width="${w}" height="32" rx="6" fill="${fill}" stroke="${stroke}" stroke-width="${sw}"/>`;
+    if(n.normal&&!isSel)out+=`<rect x="${cx-w/2+3}" y="${cy-13}" width="${w-6}" height="26" rx="4" fill="none" stroke="${stroke}" stroke-width="1" stroke-dasharray="3,2"/>`;
+    out+=`<text x="${cx}" y="${cy+5}" text-anchor="middle" font-size="13" font-weight="600">${n.label}</text>`;
+    out+=`</g>`;
+  });
+  svg.innerHTML=out;
+
+  // Bind clicks
+  svg.querySelectorAll('.node').forEach(el=>{
+    el.onclick=()=>{
+      selected=el.dataset.id;
+      showDetail(d,el.dataset.id);
+      render();
+    };
+  });
+}
+
+function showDetail(d,id){
+  const n=d.nodes.find(x=>x.id===id);
+  if(!n){document.getElementById('detail').innerHTML='';return;}
+  const index=d.order/n.order;
+  let html=`<div class="${n.normal?'success':'warn'}">`;
+  html+=`<b>${n.label}</b> dans ${d.name}`;
+  html+=n.normal?' — <b>distingué</b> ✓':' — <b>non distingué</b> ✗';
+  html+='</div>';
+  html+=`<div class="info">`;
+  html+=`<b>Ordre :</b> ${n.order}<br>`;
+  html+=`<b>Indice [${d.name}:H] :</b> ${index}<br>`;
+  html+=`<b>Générateurs :</b> {${n.gens}}<br>`;
+  if(n.normal&&n.order>1&&n.order<d.order){
+    html+=`<b>Quotient :</b> ${n.quotient}`;
+  }else if(!n.normal){
+    html+=`<span class="small">Sous-groupe non distingué : le quotient à gauche n'est pas un groupe.</span>`;
+  }
+  html+='</div>';
+  // Inclusions
+  const children=d.edges.filter(([a])=>a===id).map(([,b])=>b);
+  const parents=d.edges.filter(([,b])=>b===id).map(([a])=>a);
+  if(parents.length)html+=`<p class="small"><b>Contenu dans :</b> ${parents.join(', ')}</p>`;
+  if(children.length)html+=`<p class="small"><b>Contient :</b> ${children.join(', ')}</p>`;
+  document.getElementById('detail').innerHTML=html;
+}
+
+document.getElementById('grp').onchange=()=>{selected=null;document.getElementById('detail').innerHTML='<p class="small">Cliquer sur un nœud.</p>';render();};
+render();
+</script>
+</body></html>
